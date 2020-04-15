@@ -1,0 +1,89 @@
+---
+title: "Assignment 1"
+author: "Dan Boguslavsky"
+date: "4/13/2020"
+output: pdf_document
+---
+Required pack installation:
+```{r}
+#install.packages('magrittr')
+#install.packages("microbenchmark")
+#install.packages('data.table')
+```
+
+#Question 1 
+#a.
+
+```{r}
+my_aggregation <- function(x, is.truncated = FALSE){
+  if(is.truncated){
+    x <- x[x>=quantile(x,0.05)&x<=quantile(x,0.95)] #Discard 5th quantile and 95th quantile from vector x.
+    return(list("mean" = mean(x), "var" = var(x), "med" = median(x)))
+  }#close-if
+  list("mean" = mean(x), "var" = var(x), "med" = median(x))
+}#close-func-"my_aggregation"
+```
+
+#b.
+We expect the aggregates to be very different when there is an extremely low or high value (or a few values) in the vector that is very different from most of the values.
+If those "extreme" values are "balanced", meaning we have them on opposite sides, for example, a vector with a mean of 10 with most of the values in it, around its mean, and two values of 1,000,000 and (-1,000,000).
+In this case, the mean should not be very much changed, although, the variance will decrease greatly.
+On the other hand, if we have a vector that its variance is large enough because its values are "spreaded", but imbalanced, we are likely to see the variance decreasing slightly, but the mean changed radically.
+The robustness of the median is based on the fact that we discard the values from both sides with the same percentage.
+
+```{r}
+set.seed(256)
+dis<-rlnorm(1000000,1,0.5)
+my_aggregation(dis)
+my_aggregation(dis,is.truncated = TRUE)
+```
+We can see that the mean has not changed much, but the variance had decreased by half, this is because we eliminated the large and small values  on both sides somewhat eaqualy so the mean did not changed, but because the spead is smaller now, the variance is smaller.
+Also, we can see, as expected, that the median did not changed.
+
+#c.
+```{r}
+#Adjust the function to return the mean only:
+
+my_aggregation_mean <- function(x, is.truncated = FALSE){
+  if(is.truncated){
+    x <- x[x>=quantile(x,0.05)&x<=quantile(x,0.95)]
+    return(list("mean" = mean(x)))
+  }#close-if
+  list("mean" = mean(x))
+}#close-func-"my_aggregation_mean"
+
+#Now lets compare the run time:
+
+library('microbenchmark')
+microbenchmark(
+my_aggregation_mean(dis, is.truncated = TRUE),
+mean(dis,trim = 0.05),
+times = 30 #Using 30 instead of default 100 just to save time.
+)
+```
+We can see that the R base function is much faster (almost twice as much) than ours.
+The reason is probably because R is using its own efficient algorithms to subset the data.
+
+#Question 2
+
+#a.
+```{r}
+aq<-airquality
+apply(aq,2,FUN = function(x) sum(is.na(x)))
+is.na_row <- apply(aq,1, FUN = function (x) anyNA(x))
+```
+
+#b.
+```{r}
+library('data.table')
+  airquality_imputed <- as.data.table(aq)
+  airquality_imputed <- 
+    airquality_imputed[,lapply(.SD,FUN = function(x) ifelse(is.na(x),mean(x,na.rm = TRUE),as.double(x))),by = Month]
+```
+
+#c.
+```{r}
+plot
+```
+
+DT[,lapply(.SD,FUN = function(x) mean(x,na.rm = TRUE)),by = Month]
