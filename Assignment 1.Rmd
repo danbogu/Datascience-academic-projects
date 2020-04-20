@@ -301,3 +301,11 @@ same<-function(a,b){
 ```{r}
 
 ```
+
+#d.
+```{r}
+
+```
+
+#Question 9
+
