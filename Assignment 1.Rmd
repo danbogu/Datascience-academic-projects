@@ -9,6 +9,15 @@ Required pack installation:
 #install.packages('magrittr')
 #install.packages("microbenchmark")
 #install.packages('data.table')
+#install.packages('ggplot2')
+#install.packages("reshape2")
+#install.packages('lubridate')
+#install.packages('stringr')
+#install.packages('chron')
+```
+
+```{r}
+rm(list = ls())
 ```
 
 #Question 1 
@@ -83,7 +92,212 @@ library('data.table')
 
 #c.
 ```{r}
-plot
+plot(airquality_imputed$Ozone,airquality_imputed$Solar.R)
 ```
 
-DT[,lapply(.SD,FUN = function(x) mean(x,na.rm = TRUE)),by = Month]
+#Question 3
+
+```{r}
+library('ggplot2')
+data("diamonds")
+```
+
+#a.
+```{r}
+dim(diamonds)
+class(diamonds)
+```
+The class is - data frame, made out of a "tbl" class. The dimensions are 53940 rows over 10 columns.
+
+#b.
+```{r}
+library('magrittr')
+library('data.table')
+set.seed(256)
+d <- diamonds[sample(nrow(diamonds),nrow(diamonds)*0.25),] %>% as.data.table()
+```
+
+#c.
+```{r}
+
+```
+
+#d.
+```{r}
+#1.
+d[,"logp":=log10(d$price)]
+#2.
+d[,"v":=d$x*d$y*d$z]
+#3.
+median_depth<-median(d$depth)
+d[,"cond1":=(((d$cut=="Ideal") + (d$depth<median_depth) + (d$clarity!="I1") + (d$color%in%c("D","E","F","G")))==3)]
+```
+
+#e.
+```{r}
+d[,list(Vmean = mean(v),Vvar = var(v), LOGPmean = mean(logp), LOGPvar = var(logp)),by = cond1]
+```
+
+#f.
+```{r}
+library('magrittr')
+color_cut<-expand.grid(unique(d$cut),unique(d$color)) %>% as.data.table()
+colnames(color_cut)[1]<-"cut"
+colnames(color_cut)[2]<-"color"
+set.seed(256)
+color_cut[,"some_feature":=rnorm(nrow(color_cut))]
+d<-merge(d,color_cut,by=c("cut","color"),all = TRUE)
+#1.
+d[,list(some_feature_mean = mean(some_feature)),by = "clarity"]
+#2.
+d[some_feature>1,list(PRICE_sd = sd(price), PRICE_iqr = IQR(price), PRICE_mad = mad(price)),by = "cut"]
+#3. we are looking for those who make (cond1 or cond2) but not both.
+d[((1<carat&2>carat)|(5000<price&10000>price))&(!((1<carat&2>carat)&(5000<price&10000>price))),.N,by="color"]
+```
+
+#g.
+```{r}
+library('reshape2')
+acast(d,cut~color,value.var = "price",mean)
+```
+
+#Question 4
+
+
+#Question 5
+
+#a.
+```{r}
+airq<-airquality %>% as.data.table()
+stock<-EuStockMarkets %>% as.data.table()
+```
+
+#b.
+```{r}
+library('data.table')
+airq[,"date":=as.Date(paste(airq$Day,airq$Month,"2019",sep = "-"),format = c("%d-%m-%Y"))]
+stock[,"date":=seq.Date(from = as.Date("2019-01-01",format = c("%Y-%m-%d")),by = "day",length.out = nrow(stock))]
+```
+
+#c.
+```{r}
+setkey(airq,"date")
+setkey(stock,"date")
+stock<-stock[airq,,]
+```
+
+#d.
+```{r}
+library('lubridate')
+difference<-stock$date[stock$CAC==(min(stock$CAC))] %--%stock$date[stock$CAC==(max(stock$CAC))] 
+#The time period is:
+as.period(difference, unit = 'month') #in months
+as.period(difference, unit = 'day') #in days
+as.period(difference, unit = 'hour') #in hours
+```
+
+#e.
+```{r}
+library('magrittr')
+stock$Temp[stock$date %between% c(ymd(int_start(difference)),ymd(int_end(difference)))] %>% mean()
+```
+
+#f.
+```{r}
+
+```
+
+#g.
+```{r}
+stock[,"week_num":=week(stock$date)]
+stock[,list(CAC_mean = mean(CAC), TEMP_mean = mean(Temp)),by = "week_num"]
+##if only the MIN-MAX intervanl needed:
+stock[stock$date %between% c(ymd(int_start(difference)),ymd(int_end(difference))),
+      list(CAC_mean = mean(CAC), TEMP_mean = mean(Temp)),by = "week_num"]
+```
+
+
+#Question 6
+
+```{r}
+WHR2017<-read.csv("/Users/danboguslavsky/git/datascience/2017.csv")
+```
+
+#a.
+```{r}
+#colnames(WHR2017)
+for (i  in 1:NROW(colnames(WHR2017))){
+  colnames(WHR2017)[i]<-gsub("..","-",colnames(WHR2017)[i],fixed = TRUE)
+}#for_loop
+```
+
+#b.
+```{r}
+
+```
+
+#c.
+```{r}
+
+```
+
+#d.
+```{r}
+
+```
+
+#Question 7
+
+```{r}
+library('data.table')
+autos<-fread(file = "/Users/danboguslavsky/git/datascience/autos.csv", encoding = "Latin-1")
+```
+
+#a.
+```{r}
+library('magrittr')
+grep("Mazda",autos$name,ignore.case = TRUE) %>% length()
+mazda <- autos[grep("Mazda",autos$name,ignore.case = TRUE),] %>% as.data.table()
+```
+
+#b.
+```{r}
+mazda[,"is_3":= grepl("3",mazda$name)]
+```
+
+#c.
+```{r}
+library('lubridate')
+mazda[,list(Created_to_Seen_time =mean(difftime(as.POSIXct(lastSeen),as.POSIXct(dateCreated),units = "hours")),
+            Num_of_obs = .N, Diesel_sahre = (sum(fuelType == "diesel"))/.N),by = "is_3"]
+```
+
+
+#Question 8
+#a.
+```{r}
+zeros<-function(d){
+  a<-matrix(0,d,d)
+  a[c(1,d),] <-1
+  a[,c(1,d)] <-1
+  return(a)
+}#close_function_"zeros"
+```
+
+#b.
+```{r}
+same<-function(a,b){
+  if(length(a)==length(b)){
+    for (i in 1:length(a)) {
+      if(a[i]!=b[i]){return(FALSE)}
+    }#close_for
+    return(TRUE) #no non identical values found -> the vectors are identical
+  }#close_if
+  return(FALSE) #not the same length -> not identical
+}#close_function
+```
+
+#c.
+```{r}
+
+```
