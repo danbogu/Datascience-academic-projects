@@ -14,6 +14,7 @@ Required pack installation:
 #install.packages('lubridate')
 #install.packages('stringr')
 #install.packages('chron')
+#install.packages("ggplot2")
 ```
 
 ```{r}
@@ -92,7 +93,10 @@ library('data.table')
 
 #c.
 ```{r}
-plot(airquality_imputed$Ozone,airquality_imputed$Solar.R)
+plot(airquality_imputed$Ozone,airquality_imputed$Solar.R, xlab = "Ozone",ylab = "Solar.R")
+imputed_points<-which(is.na(airquality$Ozone)&is.na(airquality$Solar.R))
+points(airquality_imputed$Ozone[imputed_points],airquality_imputed$Solar.R[imputed_points],col="red",pch = 19)
+legend("bottomright", legend = c("Fully-imputed","Original / Semi-imputed"),col=c("red", "black"), pch=c(19,1), cex=0.8)
 ```
 
 #Question 3
@@ -119,8 +123,12 @@ d <- diamonds[sample(nrow(diamonds),nrow(diamonds)*0.25),] %>% as.data.table()
 
 #c.
 ```{r}
-
+mosaicplot(~cut+color,data = d)
 ```
+In this plot we can observe the distribution of the entire data, based on the color and cut variables.
+For example, it is obvious that the "Ideal" cut is the most frequent one and the "Fair" cut is the less frequent one.
+Now, we can also observe the distribution of the color in each cut level. For example - the "G" color seems to be the most frequent
+in the "Ideal" cut group, but the "J" color - the less frequent one in that group.
 
 #d.
 ```{r}
@@ -162,8 +170,21 @@ acast(d,cut~color,value.var = "price",mean)
 ```
 
 #Question 4
-
-
+```{r}
+library('ggplot2')
+data("mpg")
+mpg$manufacturer<-factor(mpg$manufacturer)
+mpg$class<-factor(mpg$class)
+mpg$year<-factor(mpg$year)
+ggplot(mpg,aes(x=manufacturer,fill=manufacturer))+geom_histogram(stat = "count") + scale_x_discrete(labels = NULL)
+ggplot(mpg,aes(x=displ,y=hwy,color=class))+geom_point(aes(shape = fl)) + facet_wrap(~manufacturer, ncol = 5)
+ggplot(mpg,aes(x=displ,y=hwy,color=cyl)) + geom_point() +
+          geom_smooth(span=0.7,colour = "blue",level=0.95) + geom_smooth(span=0.3,colour = "red",level=0.95)
+ggplot(mpg,aes(x=displ)) + geom_density(aes(group = hwy>23,fill = hwy>23),alpha=0.5) +
+          facet_wrap(vars(year)) +
+          theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank(),panel.background = element_blank(),
+          legend.position="bottom") 
+```
 #Question 5
 
 #a.
@@ -204,7 +225,10 @@ stock$Temp[stock$date %between% c(ymd(int_start(difference)),ymd(int_end(differe
 
 #f.
 ```{r}
+library('ggplot2')
 
+ggplot(data = stock,aes(x=date)) + geom_line(aes(date,CAC)) + geom_line(aes(date,DAX)) + geom_line(aes(date,SMI)) +                         geom_line(aes(date,FTSE)) + ylab("price") +
+      geom_vline(xintercept = as.numeric(stock[stock$Solar.R == min(stock$Solar.R,na.rm = T),"date"]))
 ```
 
 #g.
