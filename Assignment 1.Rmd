@@ -5,6 +5,7 @@ date: "4/13/2020"
 output:
   html_document:
     df_print: paged
+  pdf_document: default
 ---
 Required packages installation:
 ```{r}
@@ -287,7 +288,7 @@ This makes very much sense as high "Happiness.Score" indicates lower rank - mean
 
 #d.Bonus.
 ```{r}
-library("rnaturalearthdata")
+#library("rnaturalearthdata")
 library('leaflet')
 library('magrittr')
 contries_lng_lat<-data.frame(NA,NA,NA)
@@ -360,13 +361,37 @@ same<-function(a,b){
 
 #c.
 ```{r}
-
+library('stringr')
+counter<-function(a,b){
+ count = 0
+ a<-str_split(a,"",simplify = T)
+ for (char in a){
+   if (char==b){count = count + 1}
+ }#close for loop
+ return(count)
+}#close function
 ```
 
-#d.
+#d. 
 ```{r}
-
+birthday <- function(birthday){
+  birthday<-as.Date(birthday)
+  print(weekdays(birthday))
+  difference<-(Sys.Date()-birthday)
+  print(difference)
+  print(paste("Next birthday in: ",(ceiling(difference/365)-(difference/365))*365," days",sep = ""))
+}
 ```
 
 #Question 9
+```{r}
+diamondsDB <-data.frame(diamonds)
+```
 
+#a.
+```{r}
+diamondsDB$color <- as.integer(diamondsDB$color)
+cor.carat.color <- cor.test(x = diamondsDB$carat,y=diamondsDB$color,method = "pearson")
+cor.test(x = diamondsDB$carat,y=diamondsDB$color,method = "spearman")
+plot(x = diamondsDB$color, y = diamondsDB$carat)
+```
