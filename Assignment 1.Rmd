@@ -21,6 +21,7 @@ Required packages installation:
 #install.packages("corrplot")
 #install.packages("leaflet")
 #install.packages("rnaturalearthdata")
+#install.packages('dplyr')
 ```
 
 ```{r}
@@ -385,13 +386,39 @@ birthday <- function(birthday){
 
 #Question 9
 ```{r}
-diamondsDB <-data.frame(diamonds)
+library('ggplot2')
+data("diamonds")
 ```
 
 #a.
 ```{r}
-diamondsDB$color <- as.integer(diamondsDB$color)
-cor.carat.color <- cor.test(x = diamondsDB$carat,y=diamondsDB$color,method = "pearson")
-cor.test(x = diamondsDB$carat,y=diamondsDB$color,method = "spearman")
-plot(x = diamondsDB$color, y = diamondsDB$carat)
+numeric_diamonds <- unlist(lapply(diamonds, is.numeric)) 
+numeric_diamonds<-diamonds[,numeric_diamonds]
+cor_mat<-matrix(NA,ncol(numeric_diamonds),ncol(numeric_diamonds))
+for(i in 1:ncol(numeric_diamonds)){
+  for(j in 1:ncol(numeric_diamonds)){
+    cor_mat[i,j]<-(cor(numeric_diamonds[,i],numeric_diamonds[,j]))
+  }#close_j_loop
+}#close_i_loop
+colnames(cor_mat)<-names(numeric_diamonds)
+rownames(cor_mat)<-names(numeric_diamonds)
+cor_mat
+```
+The importance of a correlation matrix in the context of date science is being expressed as it lets us see pattern between a large amount of variables. Thanks to it, we can show a very important information is a very simple and basic form.
+
+#b.
+No, we cannot compute the Pearson correlation between 'cut' and 'color' as they are both "categorial" variables and cannot be used in Pearson's correlation formula.
+
+#c.
+```{r}
+library('magrittr')
+library('dplyr')
+library('data.table')
+cut_by_color<-diamonds %>% group_by(cut, color) %>% summarise(n=n()) %>% as.data.table() %>% dcast(color~cut)
+cut_by_color[,.SD/sum(.SD),by="color"]
+```
+
+#d.
+```{r}
+
 ```
