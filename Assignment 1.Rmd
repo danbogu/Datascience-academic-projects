@@ -1,11 +1,10 @@
 ---
-title: "Assignment 1"
-author: "Dan Boguslavsky"
-date: "4/13/2020"
+title: "Data science for economists - Assignment 1"
+author: "Dan Boguslavsky and Anna Demidov"
+date: "5/03/2020"
 output:
   html_document:
     df_print: paged
-  pdf_document: default
 ---
 Required packages installation:
 ```{r}
@@ -30,7 +29,6 @@ rm(list = ls())
 
 #Question 1 
 #a.
-
 ```{r}
 my_aggregation <- function(x, is.truncated = FALSE){
   if(is.truncated){
@@ -414,8 +412,9 @@ No, we cannot compute the Pearson correlation between 'cut' and 'color' as they 
 library('magrittr')
 library('dplyr')
 library('data.table')
-cut_by_color<-diamonds %>% group_by(cut, color) %>% summarise(n=n()) %>% as.data.table() %>% dcast(color~cut)
-cut_by_color[,.SD/sum(.SD),by="color"]
+cut_by_color<-diamonds %>% group_by(cut, color) %>% summarise(n=n()) %>% dcast(color~cut) 
+cut_by_color<-as.data.table(cut_by_color)
+cut_by_color[,.SD/sum(.SD),by = "color"]
 ```
 
 #d.
@@ -446,7 +445,7 @@ MAD_comp <- function(x){
     deviations<-c(deviations, abs(i-x_median))
   }#close_for
   deviations<-sort(deviations)
-  return(median(deviations))
+  return(median(deviations)*1.4826)
 }#close_function
 ```
 
@@ -467,16 +466,35 @@ MAD_comp(vec_10_exp)
 ```
 
 #d.
+We would expect the 'MAD' to be closer when using with normal distrebution  and the 'sd' to be more apart. This is because normal's distrebution Median and mean are close to each other.
+In the exponential distrebution, the mean is shifted but the median stays aproximatly the same.
 ```{r}
-
+paste("Difference in standard diviation: ", sd(vec_10_exp)-sd(vec_10_norm), " (Exponentian - Normal)",sep = "")
+paste("Difference in MAD: ", MAD_comp(vec_10_exp)- MAD_comp(vec_10_norm), " (Exponentian - Normal)",sep = "")
 ```
+We can see that both results are greather within the Exponentian distrebution but the the 'sd' difference is much larger.
 
 #e.
 ```{r}
-
+norm_diff_vec<-c()
+exp_dif_vec<-c()
+for(i in 1:1000){
+  norm_diff_vec<-c()
+  exp_dif_vec<-c()
+  set.seed(256)
+  vec_10_norm <- rnorm(10,mean = 1 , sd = 1)
+  set.seed(256)
+  vec_10_exp<- rexp(10,rate = 1)
+  norm_difference <- abs(MAD_comp(vec_10_norm) - sd(vec_10_norm))
+  exp_difference <- abs(MAD_comp(vec_10_exp) - sd(vec_10_exp))
+  norm_diff_vec<-c(norm_diff_vec,norm_difference)
+  exp_dif_vec<-c(exp_dif_vec,exp_difference)
+}
+mean(norm_diff_vec)
+mean(exp_dif_vec)
 ```
 
 #f.
-```{r}
+In clause 'd' as explained, due to the robustness of the Median, the difference in the MAD is much smaller the the difference in the Standard Deviation. Even though the tai is pulling the mean in the exponential distrebution, the median stays aproximatly the same.
 
-```
+In clause 'e' we can see that the average difference of the Exponential distrebution is greather, because in both distrebutions, the MAD is aproximatly the same but the standard deviation is greathet in the exponential distrebution, so the avarage difference in larger being calculated on the exponential distrebution.
