@@ -420,5 +420,63 @@ cut_by_color[,.SD/sum(.SD),by="color"]
 
 #d.
 ```{r}
+diamonds$color<-as.integer(diamonds$color)
+cor(diamonds$color,diamonds$carat)
+```
+This value does not have any meaning.
+A color can not be presented as a number value which will mean anything except a category.
+
+#e.
+We can present a the carat to color relationship with a Boxplot. We can see for each color its carat specifications:
+```{r}
+library('data.table')
+data("diamonds") 
+boxplot(diamonds$carat~diamonds$color,data=diamonds, main="Color vs Carat", xlab="Color", ylab="Carat")
+```
+So we can see here that as we go from D to J the median of carat value is increasing.
+
+#Question 10:
+#a.
+```{r}
+MAD_comp <- function(x){
+  vec_x <- sort(x)
+  x_median <- median(x)
+  deviations<-c()
+  for (i in vec_x){
+    deviations<-c(deviations, abs(i-x_median))
+  }#close_for
+  deviations<-sort(deviations)
+  return(median(deviations))
+}#close_function
+```
+
+#b.
+```{r}
+set.seed(256)
+vec_10_norm <- rnorm(10,mean = 1 , sd = 1)
+sd(vec_10_norm)
+MAD_comp(vec_10_norm)
+```
+
+#c.
+```{r}
+set.seed(256)
+vec_10_exp<- rexp(10,rate = 1)
+sd(vec_10_exp)
+MAD_comp(vec_10_exp)
+```
+
+#d.
+```{r}
+
+```
+
+#e.
+```{r}
+
+```
+
+#f.
+```{r}
 
 ```
