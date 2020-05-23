@@ -141,10 +141,20 @@ ggplot(wine, aes(x=Flavanoids, y=Phenols, color = Type)) + geom_point()
 
 #1.i.
 ```{r Q-1-i}
+type_1 <- subset(wine,Type==1)
+type_2 <- subset(wine,Type==2)
+type_3 <- subset(wine,Type==3)
+lm_type_1 <- lm(type_1$Flavanoids ~ type_1$Phenols)
+lm_type_2 <- lm(type_2$Flavanoids ~ type_2$Phenols)
+lm_type_3 <- lm(type_3$Flavanoids ~ type_3$Phenols)
+ggplot(wine, aes(x=Phenols, y=Flavanoids, color = Type)) + geom_point() + geom_smooth(method = lm, se = FALSE)
 ```
 
 #1.j.
 ```{r Q-1-j}
+coef(lm_type_1)
+coef(lm_type_2)
+coef(lm_type_3)
 ```
 
 #Question 2
@@ -290,21 +300,24 @@ for (i in seq_along(alphas)){
 plot(TPRs~FPRs, type = "l")
 TPRs
 FPRs
-
-#CON_TPRS_FPRS <- TPRs-FPRs
-#CON_TPRS_FPRS[1] <- 0     # convert NA to 0 (first arg)
-#CON_TPRS_FPRS[101] <- 0   # convert NA to 0 (last arg)
-#max <- c(0,0)
-#for (i in 1:length(CON_TPRS_FPRS)) {
-#  if (CON_TPRS_FPRS[i] > max[1]) {
-#    max[1] <- CON_TPRS_FPRS[i]
-#    max[2] <- i
-#  }
-#}
-#alphas[max[2]]   # the alpha that gets the highest (TPRs-FPRs).
-# asuming that we dont have preference for any kind of FALSE (FP=FN).
 ```
 In each alpha level we get the same rate of correct predictions.
+
+We will also compare the errors (FP/FN) vectors to find the optimal alpha, assuming we don't have a difference or preference between the types of errors (FP=FN).
+```{r Q-3-d-1}
+CON_TPRS_FPRS <- TPRs-FPRs
+CON_TPRS_FPRS[1] <- 0     # convert NA to 0 (first arg)
+CON_TPRS_FPRS[101] <- 0   # convert NA to 0 (last arg)
+max <- c(0,0)
+for (i in 1:length(CON_TPRS_FPRS)) {
+ if (CON_TPRS_FPRS[i] > max[1]) {
+   max[1] <- CON_TPRS_FPRS[i]
+   max[2] <- i
+ }
+}
+alphas[max[2]]   # the alpha that gets the highest (TPRs-FPRs).
+```
+
 
 #3.e.
 If there are 3 levels (for example) such as in our data - 'wine' DB, we need to generate 2 new variables - 
@@ -475,9 +488,7 @@ Therefor, we will try to create the following variable as interation:
 
 
 ```{r Q-4-l}
-glm.q4_try<-glm(income~age_standardize + educational.num_standardize + hours.per.week_standardize +
-      race_merged + workclass_merged + marital.status_merged + gender,
-        family = binomial,data=data_train)
+glm.q4_try <- glm(income ~ age_standardize + educational.num_standardize + hours.per.week_standardize + race_merged + workclass_merged + marital.status_merged + gender + I(age_standardize^2) + I(educational.num_standardize^2) + I(hours.per.week_standardize^2) + age_standardize*race_merged + age_standardize*gender + hours.per.week_standardize*marital.status_merged + hours.per.week_standardize*gender + age_standardize*hours.per.week_standardize + educational.num_standardize*race_merged*marital.status_merged + educational.num_standardize*race_merged*gender + age_standardize*race_merged*gender + hours.per.week_standardize*race_merged*marital.status_merged)
 
 data_test_hat_try<-predict(glm.q4_try, data_test, type = "response")
 data_test_hat_binar_try<-(data_test_hat_try>0.5)*1
