@@ -1,7 +1,7 @@
 ---
 title: "Assignment_2"
 author: "Dan Boguslavsky & Nadav Livneh"
-date: "5/12/2020"
+date: "5/24/2020"
 output: html_document
 ---
 
@@ -21,6 +21,7 @@ wine<-rattle.data::wine
 ```{r Q-1-a}
 plot(Flavanoids~Phenols,data = wine)
 ```
+
 It seems that indeed, Flavanoids and Phenols have some linear relationship between them.
 
 #1.b.
@@ -50,6 +51,7 @@ abline(coef(lm.Flavanoids.Phenols)[1:2])
 coef(lm.Flavanoids.Phenols)[2:2]
 summary(lm.Flavanoids.Phenols)
 ```
+
 The slope coefficient is significant. We base it on the t-value of the effect - which is 22.82.
 That indicates a very significant effect. We can also be assisted by the "star" code on the right of the "summary" command - "***" means a significance level of under 0.001% for the effect to be insignificant.
 
@@ -62,6 +64,7 @@ set.seed(256)
 lines(density(rnorm(1:178,0,0.5)))
 shapiro.test(lm.Flavanoids.Phenols$residuals)
 ```
+
 We add a normal distribution line to compare it with the residual distribution.
 Additionally, we add a Shapiro-Wilk test in order to verify significantly if the residual distribution is normal.
 You can notice the similarity in the plot and the p-value of the Shapiro-Wilk test is 0.0003786 (extremely significant).
@@ -131,6 +134,7 @@ R_sqr
 print("#from summary(lm):")
 summary(lm.Flavanoids.Phenols)$r.squared
 ```
+
 We can see that our computations are the same as the summary of the model presents.
 
 #1.h.
@@ -171,28 +175,35 @@ plot(mpg~I(hp^2),data = mtcars)
 abline(coef(lm.mpg.hp_2)[1:2])
 summary(lm.mpg.hp_2)
 ```
+
 The coefficients are significant by 99.9% so we might say that the effect is significant by using a polynomial of order 2 relation.
 Although, when plotting the relation - does it seems that the linear line fits the plot? Not likely...
 It looks like the variables have some other kind of relationship that fits better.
 
 Let's try another approach to examine the fitting of this model by making a QQPLOT of the residuals.
+
 ```{r Q-2,a - continue_1}
 qqnorm(lm.mpg.hp_2$residuals); qqline(lm.mpg.hp_2$residuals)
 ```
+
 Clearly, the dots are not aligned along the line on the top right corner.
 
 Though, it does seem like the relation of the variables is of y=1/x.
 Let's try it:
+
 ```{r Q-2,a - continue_2}
 lm.mpg.hp_min_1<-lm(mpg~I(hp^(-1)),data = mtcars)
 plot(mpg~I(hp^(-1)),data = mtcars)
 abline(coef(lm.mpg.hp_min_1)[1:2])
 ```
+
 This plot seems much better.
 We will test it with the QQPLOT as well:
+
 ```{r Q-2,a - continue_3}
 qqnorm(lm.mpg.hp_min_1$residuals); qqline(lm.mpg.hp_min_1$residuals)
 ```
+
 This time the dots are organized a lot better, but still not perfect.
 
 #2.b.
@@ -213,6 +224,7 @@ summary(hyp.test2)
 hyp.test3 <- glht(lm_dif_sl_co, linfct=hyp.test.mat3)
 summary(hyp.test3)
 ```
+
 The summary of the hypotheses test indicates that the slope of (cyl==4) group is different significantly from the other two groups, but the (cyl==6) group slope isn't different from the (cyl==8) group slope.
 
 #2.c.
@@ -222,13 +234,8 @@ mt_db <- as.data.table(mtcars)
 auto_db <- mt_db[mt_db$am==0]
 auto_db$eng <- ifelse (auto_db$vs==0, " v-shaped", " straight")
 summary(lm(wt~as.factor(eng) , data = auto_db))
-#auto_db$vs <- as.factor(auto_db$vs)
-#plot(wt~as.factor(eng), data = auto_db)
-#lm_auto_vs <-lm(wt~vs, data = auto_db)
-#summary(lm_auto_vs)
-#ggplot(auto_db, aes(x=as.factor(eng), y=wt)) + geom_point() + geom_smooth(method = lm, se = FALSE)
-#qqnorm(lm_auto_vs$residuals); qqline(lm_auto_vs$residuals)
 ```
+
 The hypothesis is wrong. The intercept is the weight of straight engine type and the v-shape coefficient is the additional weight of v-shape type cars to the intercept. It is negative so it means that v-shape type cars weight less than straight engine type cars, within the automatic cars group.
 
 #2.d.
@@ -242,6 +249,7 @@ hyp.test.mat<- matrix(c(0,-1,0,1), nrow =  1)
 hyp.test <- glht(lm.mpg.disp, linfct=hyp.test.mat)
 summary(hyp.test)
 ```
+
 We can see that the effects are significantly different(t value of 6.357), meaning the relationship is indeed changing when the Displacement is larger than 200.
 
 #2.e.
@@ -249,6 +257,7 @@ We can see that the effects are significantly different(t value of 6.357), meani
 lm.qsec.gear.drat<-lm(qsec~gear+drat, data = mtcars)
 summary(lm.qsec.gear.drat)
 ```
+
 The Number of forward gears (gear), does indeed affect the time it takes a car to pass 1/4 mile (qsec) when we control the Rear axle ratio (drat). [An addition gear *reduece* the time in 1.3116]
 We can see that the effect is significant with t-value of 2.271.
 
@@ -258,7 +267,9 @@ We can see that the effect is significant with t-value of 2.271.
 library(data.table)
 wine_db <- as.data.table(rattle.data::wine)
 wine_db$is_1 <- ifelse(wine_db$Type==1, 1, 0)
+suppressWarnings(
 step(glm(is_1~., data = wine_db, family = binomial))
+)
 ```
 By using 'step' function we specipicied the best 5 relevant variables.
 The formula = is_1 ~ Alcohol + Ash + Alcalinity + Dilution + Proline.
@@ -301,9 +312,11 @@ plot(TPRs~FPRs, type = "l")
 TPRs
 FPRs
 ```
+
 In each alpha level we get the same rate of correct predictions.
 
 We will also compare the errors (FP/FN) vectors to find the optimal alpha, assuming we don't have a difference or preference between the types of errors (FP=FN).
+
 ```{r Q-3-d-1}
 CON_TPRS_FPRS <- TPRs-FPRs
 CON_TPRS_FPRS[1] <- 0     # convert NA to 0 (first arg)
@@ -328,8 +341,7 @@ It is the same for 'n' levels - generate 'n-1' new variables and run 'n-1' regre
 
 #Question 4
 ```{r Q-4}
-data2 <-read.csv("https://raw.githubusercontent.com/guru99-edu/R-Programming/master/adult.csv")[,-1]
-data <- data2
+data <-read.csv("https://raw.githubusercontent.com/guru99-edu/R-Programming/master/adult.csv")[,-1]
 ```
 
 #4.a.
@@ -433,6 +445,7 @@ glm.q4<-glm(income~age_standardize + educational.num_standardize + hours.per.wee
         family = binomial,data=data_train)
 summary(glm.q4)
 ```
+
 The 'AIC' is 23425.
 Smaller AIC values indicate that the model is closer to the truth.
 
@@ -447,6 +460,7 @@ paste("We predicted correctly ", CM.glm.q4[1,1]+CM.glm.q4[2,2],", and we missed 
 
 #4.i.
 To measure accuracy we will use the formula: Accuracy = (TP+TN)/(TP+TN+FP+FN)
+
 ```{r Q-4-i}
 acc<-(sum(diag(CM.glm.q4)) / sum(CM.glm.q4))
 paste("The accuracy of the model is: ",acc)
@@ -455,12 +469,14 @@ paste("The accuracy of the model is: ",acc)
 #4.j.
 The Precision formula is:TP/(TP+FP)
 The Recall formula is:TP/(TP+FN)
+
 ```{r Q-4-j}
 Preci <- (CM.glm.q4[4] / sum(CM.glm.q4[,2]))
 Rec <- (CM.glm.q4[4] / sum(CM.glm.q4[2,]))
 paste("The Precision of the model is: ",Preci)
 paste("The Recall of the model is: ",Rec)
 ```
+
 There is a trade-off between Precision and Recall. We can not have them both high at the same time, it depends on what do we find more important to avoid - a false positive or a false negative. Precision is more important than Recall when you would like to have fewer false positives and the other way around with Recall.
 
 #4.k.
@@ -476,24 +492,34 @@ for (i in seq_along(alphas)){
 }
 plot(TPRs~FPRs, type = "l",main = "ROC Curve")
 ```
+
 The ROC curve is a plot of the true positive rate (Recall) against the false positive rate for different threshold levels. By that we can select possibly optimal models.
 
 #4.l.
-We think we should remove the "education_merged"(factiroal education), because it is correlated with the "educational.num" and so less infomative. In addition we noticed that a model without it decreases the AIC and the accuracy by a bit.
+We think we should remove the "education_merged"(factorial education), because it is correlated with the "educational.num" and so less informative. In addition we noticed that a model without it decreases the AIC and the accuracy by a bit.
 
-We can not make any new non-linear features on the numeric values because they are standardize so log or squear on the feature is not an option.
+We will also add the interactions of the age with race (all three combinations) and gender because we believe that males and females or whites and non-whites might start working at different ages. Also we will interact age with the number of work hours per week because we believe that there is additional information gain of the number of hours a person works due to its age.
 
+We will add the interaction of hours per week with the marital status as we believe people with or without a spouse work a different amount of time and also add this relation with the race to help the model see the effect within each race. We will add gender and marital status as interactions as we believe that men and women work different amounts of hours per week. 
 
-Therefor, we will try to create the following variable as interation:
+We will additionally set a relation between the years of education, race and marital status to add an effect of different levels of education within different races and different marital statuses and the same with different genders instead of marital status.
 
+Finally we will also present the effect of non-linear relation on our numerical features.
+This transformation might be somewhat "incorrect" as we lose the negative values in the data when setting the values in the power of 2, but as we see, that interaction contributes to the accuracy of the model so we will use it -as this was the goal of this question.
 
 ```{r Q-4-l}
-glm.q4_try <- glm(income ~ age_standardize + educational.num_standardize + hours.per.week_standardize + race_merged + workclass_merged + marital.status_merged + gender + I(age_standardize^2) + I(educational.num_standardize^2) + I(hours.per.week_standardize^2) + age_standardize*race_merged + age_standardize*gender + hours.per.week_standardize*marital.status_merged + hours.per.week_standardize*gender + age_standardize*hours.per.week_standardize + educational.num_standardize*race_merged*marital.status_merged + educational.num_standardize*race_merged*gender + age_standardize*race_merged*gender + hours.per.week_standardize*race_merged*marital.status_merged)
+glm.q4_try <- glm(income ~ age_standardize + educational.num_standardize + hours.per.week_standardize + race_merged + workclass_merged + marital.status_merged + gender + I(age_standardize^2) + I(educational.num_standardize^2) + I(hours.per.week_standardize^2) + 
+age_standardize*race_merged + age_standardize*gender + age_standardize*hours.per.week_standardize + age_standardize*race_merged*gender + hours.per.week_standardize*marital.status_merged + hours.per.week_standardize*gender +  hours.per.week_standardize*race_merged*marital.status_merged + educational.num_standardize*race_merged*marital.status_merged + educational.num_standardize*race_merged*gender,family = binomial,data=data_train)
 
 data_test_hat_try<-predict(glm.q4_try, data_test, type = "response")
 data_test_hat_binar_try<-(data_test_hat_try>0.5)*1
 CM.glm.q4_try <- table(true= data_test$income, predicted = data_test_hat_binar_try)
 acc_try<-(sum(diag(CM.glm.q4_try)) / sum(CM.glm.q4_try))
 paste("The accuracy of the model is: ",acc_try)
+paste("We gained an additional model accuracy of " ,acc_try-0.818718696269717,".",sep="")
 ```
-0.817309123381456
+
+Though this might be a very low addition to the accuracy this is the best we could do.
+Generally we believe that this addition is not too good for the general idea of modeling as we added a very large amount of new features that were not extremely informative.
+The testing of the accuracy of the model was on a single test set, and by that we think we should say that this model is an example of "Over-fitting".
+If we would like to predict a different kind of a test set, we think we should use our initial model as it much simpler and predict similar results.
