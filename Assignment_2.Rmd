@@ -1,0 +1,525 @@
+---
+title: "Assignment_2"
+author: "Dan Boguslavsky & Nadav Livneh"
+date: "5/24/2020"
+output: html_document
+---
+
+```{r}
+rm(list=ls())
+```
+
+#Question 1
+```{r Question 1}
+#install.packages('rattle.data')
+library('rattle.data')
+wine<-rattle.data::wine
+?wine
+```
+
+#1.a.
+```{r Q-1-a}
+plot(Flavanoids~Phenols,data = wine)
+```
+
+It seems that indeed, Flavanoids and Phenols have some linear relationship between them.
+
+#1.b.
+The model: Flavanoids = β0 + β1*Phenols + error.
+
+We don't assume any assumptions. In this course our goal is to make good predictions using correlations and relationships between features, but not describing a phenomenon or infer a cause, so the assumptions from econometrics class are not relevant.
+
+#1.c.
+we want to minimize the sum of residual squares, so to get those expressions we need to derivate the sum by β0 and β1 and equal the equations to '0'.
+Then solving the equations, and find β0 and β1.
+
+We assumed nothing to solve this minimization problem and to get the linear coefficients. Assumptions are required only if we want to infer a cause with those coefficients.
+
+#1.d.
+```{r Q-1-d}
+lm.Flavanoids.Phenols<- lm(wine$Flavanoids~wine$Phenols)
+#Estimation resaults:
+predict(lm.Flavanoids.Phenols)
+#Plot + regression line:
+plot(Flavanoids~Phenols,data = wine)
+abline(coef(lm.Flavanoids.Phenols)[1:2])
+```
+
+#1.e.
+```{r Q-1-e}
+#Slope coefficient:
+coef(lm.Flavanoids.Phenols)[2:2]
+summary(lm.Flavanoids.Phenols)
+```
+
+The slope coefficient is significant. We base it on the t-value of the effect - which is 22.82.
+That indicates a very significant effect. We can also be assisted by the "star" code on the right of the "summary" command - "***" means a significance level of under 0.001% for the effect to be insignificant.
+
+#1.f.
+```{r Q-1-f}
+plot(density(lm.Flavanoids.Phenols$residuals),main = "Residuals",col="red")
+legend("topright", legend=c("syntatic norm dist", "residual dist"),
+           col=c("black","red"),lty=1, cex=0.7)
+set.seed(256)             
+lines(density(rnorm(1:178,0,0.5)))
+shapiro.test(lm.Flavanoids.Phenols$residuals)
+```
+
+We add a normal distribution line to compare it with the residual distribution.
+Additionally, we add a Shapiro-Wilk test in order to verify significantly if the residual distribution is normal.
+You can notice the similarity in the plot and the p-value of the Shapiro-Wilk test is 0.0003786 (extremely significant).
+
+#1.g.
+```{r Q-1-g}
+#β0,β1 calculation:
+numerator<-c()
+denominator<-c()
+residuals.vec<-c()
+mean_x<-mean(wine$Phenols)
+mean_y<-mean(wine$Flavanoids)
+for(i in 1:NROW(wine)){
+  x_i<-wine$Phenols[i]
+  y_i<-wine$Flavanoids[i]
+  numerator<-c(numerator,((x_i-mean_x)*(y_i-mean_y)))
+  denominator<-c(denominator,((x_i-mean_x)^2))
+}#close_for
+b.1 <-sum(numerator)/sum(denominator)
+b.0 <- mean_y - b.1*mean_x
+#Residuals calculation:
+for(i in 1:NROW(wine)){
+  y_i<-wine$Flavanoids[i]
+  x_i<-wine$Phenols[i]
+  y_hat<-x_i*b.1+b.0
+  res<-((y_i-y_hat)*(y_i-y_hat))
+  residuals.vec<-c(residuals.vec,res)
+}#close_for
+RSS <-sum(residuals.vec)
+#R_squ calculation:
+numerator<-c()
+denominator<-c()
+for(i in 1:NROW(wine)){
+  y_i<-wine$Flavanoids[i]
+  x_i<-wine$Phenols[i]
+  y_hat<-x_i*b.1+b.0
+  numerator<-c(numerator,((y_i-y_hat)^2))
+  denominator<-c(denominator,((y_i-mean_y)^2))
+}#close_for
+R_sqr <-(1-(sum(numerator)/sum(denominator)))
+b.0
+b.1
+RSS
+R_sqr
+
+#1.
+print("#our computaion:")
+b.0
+print("#from summary(lm):")
+lm.Flavanoids.Phenols$coefficients[1]
+
+#2.
+print("#our computaion:")
+b.1
+print("#from summary(lm):")
+lm.Flavanoids.Phenols$coefficients[2]
+
+#3.
+print("#our computaion:")
+RSS
+print("#from summary(lm):")
+sum(lm.Flavanoids.Phenols$residuals^2)
+
+#4.
+print("#our computaion:")
+R_sqr
+print("#from summary(lm):")
+summary(lm.Flavanoids.Phenols)$r.squared
+```
+
+We can see that our computations are the same as the summary of the model presents.
+
+#1.h.
+```{r Q-1-h}
+library("ggplot2")
+ggplot(wine, aes(x=Flavanoids, y=Phenols, color = Type)) + geom_point()
+```
+
+#1.i.
+```{r Q-1-i}
+type_1 <- subset(wine,Type==1)
+type_2 <- subset(wine,Type==2)
+type_3 <- subset(wine,Type==3)
+lm_type_1 <- lm(type_1$Flavanoids ~ type_1$Phenols)
+lm_type_2 <- lm(type_2$Flavanoids ~ type_2$Phenols)
+lm_type_3 <- lm(type_3$Flavanoids ~ type_3$Phenols)
+ggplot(wine, aes(x=Phenols, y=Flavanoids, color = Type)) + geom_point() + geom_smooth(method = lm, se = FALSE)
+```
+
+#1.j.
+```{r Q-1-j}
+coef(lm_type_1)
+coef(lm_type_2)
+coef(lm_type_3)
+```
+
+#Question 2
+```{r Question 2}
+mtcars<-mtcars
+?mtcars
+```
+
+#2.a.
+```{r Q-2-a}
+#Lets see if we can make a linear relation when we make the following model (When Fross Horsepower is in polynomial of order 2 relation with Miles per gallon:
+lm.mpg.hp_2<-lm(mpg~I(hp^2),data = mtcars)
+plot(mpg~I(hp^2),data = mtcars)
+abline(coef(lm.mpg.hp_2)[1:2])
+summary(lm.mpg.hp_2)
+```
+
+The coefficients are significant by 99.9% so we might say that the effect is significant by using a polynomial of order 2 relation.
+Although, when plotting the relation - does it seems that the linear line fits the plot? Not likely...
+It looks like the variables have some other kind of relationship that fits better.
+
+Let's try another approach to examine the fitting of this model by making a QQPLOT of the residuals.
+
+```{r Q-2,a - continue_1}
+qqnorm(lm.mpg.hp_2$residuals); qqline(lm.mpg.hp_2$residuals)
+```
+
+Clearly, the dots are not aligned along the line on the top right corner.
+
+Though, it does seem like the relation of the variables is of y=1/x.
+Let's try it:
+
+```{r Q-2,a - continue_2}
+lm.mpg.hp_min_1<-lm(mpg~I(hp^(-1)),data = mtcars)
+plot(mpg~I(hp^(-1)),data = mtcars)
+abline(coef(lm.mpg.hp_min_1)[1:2])
+```
+
+This plot seems much better.
+We will test it with the QQPLOT as well:
+
+```{r Q-2,a - continue_3}
+qqnorm(lm.mpg.hp_min_1$residuals); qqline(lm.mpg.hp_min_1$residuals)
+```
+
+This time the dots are organized a lot better, but still not perfect.
+
+#2.b.
+```{r Q-2-b}
+library("ggplot2")
+library(multcomp)
+lm_dif_sl_co <-lm(mpg ~ as.factor(cyl) + as.factor(cyl)*hp, data = mtcars)
+ggplot(mtcars, aes(x=hp, y=mpg, color=as.factor(cyl))) + geom_point() + geom_smooth(method = lm, se = FALSE)
+summary(lm_dif_sl_co)
+qqnorm(lm_dif_sl_co$residuals); qqline(lm_dif_sl_co$residuals)
+hyp.test.mat1<- matrix(c(0,0,0,1,-1,0), nrow =  1)
+hyp.test.mat2<- matrix(c(0,0,0,1,0,-1), nrow =  1)
+hyp.test.mat3<- matrix(c(0,0,0,0,1,-1), nrow =  1)
+hyp.test1 <- glht(lm_dif_sl_co, linfct=hyp.test.mat1)
+summary(hyp.test1)
+hyp.test2 <- glht(lm_dif_sl_co, linfct=hyp.test.mat2)
+summary(hyp.test2)
+hyp.test3 <- glht(lm_dif_sl_co, linfct=hyp.test.mat3)
+summary(hyp.test3)
+```
+
+The summary of the hypotheses test indicates that the slope of (cyl==4) group is different significantly from the other two groups, but the (cyl==6) group slope isn't different from the (cyl==8) group slope.
+
+#2.c.
+```{r Q-2-c}
+library(data.table)
+mt_db <- as.data.table(mtcars)
+auto_db <- mt_db[mt_db$am==0]
+auto_db$eng <- ifelse (auto_db$vs==0, " v-shaped", " straight")
+summary(lm(wt~as.factor(eng) , data = auto_db))
+```
+
+The hypothesis is wrong. The intercept is the weight of straight engine type and the v-shape coefficient is the additional weight of v-shape type cars to the intercept. It is negative so it means that v-shape type cars weight less than straight engine type cars, within the automatic cars group.
+
+#2.d.
+```{r Q-2-d}
+#install.packages('multcomp')
+library(multcomp)
+#First we run the model:
+lm.mpg.disp<-lm(mpg~disp*I(disp>200), data = mtcars)
+#Now lets make the test:
+hyp.test.mat<- matrix(c(0,-1,0,1), nrow =  1)
+hyp.test <- glht(lm.mpg.disp, linfct=hyp.test.mat)
+summary(hyp.test)
+```
+
+We can see that the effects are significantly different(t value of 6.357), meaning the relationship is indeed changing when the Displacement is larger than 200.
+
+#2.e.
+```{r Q-2-e}
+lm.qsec.gear.drat<-lm(qsec~gear+drat, data = mtcars)
+summary(lm.qsec.gear.drat)
+```
+
+The Number of forward gears (gear), does indeed affect the time it takes a car to pass 1/4 mile (qsec) when we control the Rear axle ratio (drat). [An addition gear *reduece* the time in 1.3116]
+We can see that the effect is significant with t-value of 2.271.
+
+#Question 3
+#3.a.
+```{r Q-3-a}
+library(data.table)
+wine_db <- as.data.table(rattle.data::wine)
+wine_db$is_1 <- ifelse(wine_db$Type==1, 1, 0)
+suppressWarnings(
+step(glm(is_1~., data = wine_db, family = binomial))
+)
+```
+By using 'step' function we specipicied the best 5 relevant variables.
+The formula = is_1 ~ Alcohol + Ash + Alcalinity + Dilution + Proline.
+Meaning the model is: is_1 = β0 x Alcohol + β1 x Ash + β2 x Alcalinity + β3 x Dilution + β4 x Proline
+
+#3.b.
+```{r Q-3-b}
+glm_is_1 <-glm(formula = is_1 ~ Alcohol + Ash + Alcalinity + Dilution + Proline,
+               data = wine_db, family = binomial) # Formula copyed from the step of steped_glm with 5 vars. 
+                                                  # Changes when changing the amount of train/test of data.
+coef(glm_is_1)
+```
+
+#3.c.
+```{r Q-3-c}
+yhat_glm_is_1 <- predict(glm_is_1, wine_db, type = "response") ###only for test data
+hist(yhat_glm_is_1)
+yhat_glm_is_1_binar <- (yhat_glm_is_1>0.5)*1
+print(paste('the mean of is_1 prediction is', mean(yhat_glm_is_1_binar), 'as positiv to be 1')) #classification rate???
+acurate_rate_matrix <- table(true = wine_db$is_1, predicted = yhat_glm_is_1_binar) ###only for test data
+print(paste('FALSE-POSITVE:',acurate_rate_matrix[1,1],'. FALSE-NEGATIVE:', acurate_rate_matrix[2,1], '. TRUE-NEGATIVE:', acurate_rate_matrix[1,2], '. TRUE-POSITIVE:', acurate_rate_matrix[2,2]))
+acurate_rate_matrix
+print(paste('the accuracy rate is',sum(diag(acurate_rate_matrix)) / sum(acurate_rate_matrix)))
+print(paste('the prcision rate is', Precision <- acurate_rate_matrix[4] / sum(acurate_rate_matrix[,2])))
+print(paste('the racall rate is',Recall <- acurate_rate_matrix[4] / sum(acurate_rate_matrix[2,])))
+```
+
+#3.d.
+```{r Q-3-d}
+alphas <- seq(0,1,0.01)
+TPRs <- numeric(length(alphas))
+FPRs <- numeric(length(alphas))
+for (i in seq_along(alphas)){
+  pr_i <- ifelse(yhat_glm_is_1>alphas[i],1,0)
+  CM_i <- table(wine_db$is_1, pr_i)  ###only for test data
+  TPRs[i] <- CM_i[4] / sum(CM_i[2,])  # TP/TP+FN - regection from FN (high is good)
+  FPRs[i] <- CM_i[3] / sum(CM_i[1,])  # FP/FP+FN - regection from FP (low is good)
+}
+plot(TPRs~FPRs, type = "l")
+TPRs
+FPRs
+```
+
+In each alpha level we get the same rate of correct predictions.
+
+We will also compare the errors (FP/FN) vectors to find the optimal alpha, assuming we don't have a difference or preference between the types of errors (FP=FN).
+
+```{r Q-3-d-1}
+CON_TPRS_FPRS <- TPRs-FPRs
+CON_TPRS_FPRS[1] <- 0     # convert NA to 0 (first arg)
+CON_TPRS_FPRS[101] <- 0   # convert NA to 0 (last arg)
+max <- c(0,0)
+for (i in 1:length(CON_TPRS_FPRS)) {
+ if (CON_TPRS_FPRS[i] > max[1]) {
+   max[1] <- CON_TPRS_FPRS[i]
+   max[2] <- i
+ }
+}
+alphas[max[2]]   # the alpha that gets the highest (TPRs-FPRs).
+```
+
+
+#3.e.
+If there are 3 levels (for example) such as in our data - 'wine' DB, we need to generate 2 new variables - 
+'is_1' for the first type and 'is_2' for the second one. Now we need to run 2 glm's - for each variable separately and to choose the same formula for both. The third will be calculated from those two:
+"glm_is_3 = 1 - glm_is_1 - glm_is_2".
+With those three regressions we can estimate the 'chances' of each observation to get any of the levels and check the accuracy of the results. In this format we have only true/false but not positive/negative. We still can decide from which false we prefer to avoid (more than the others).
+It is the same for 'n' levels - generate 'n-1' new variables and run 'n-1' regressions and so on...
+
+#Question 4
+```{r Q-4}
+data <-read.csv("https://raw.githubusercontent.com/guru99-edu/R-Programming/master/adult.csv")[,-1]
+```
+
+#4.a.
+```{r Q-4-a}
+for (i in colnames(data)){
+  if(class(data[[i]])=="integer"){print(paste("The feature " , i , "is continuous"))}
+  else{print(paste("The feature " , i , "is " , class(data[[i]])))}
+}
+```
+
+#4.b.
+```{r Q-4-b}
+
+for (i in colnames(data)){
+  if(class(data[[i]])=="integer"){
+    hist(data[[i]],xlab=i,main=paste("distribution of",i, "befor"))
+    temp_d <- data[[i]]
+    qnt <- quantile(temp_d, probs=c(.25, .75), na.rm = T)
+    a <- ifelse (i=="hours.per.week",5,1.5) # the anomality of hpw shoulde be wider so it dosen't drop too many data
+    H <- a * IQR(temp_d, na.rm = T)
+    data[[i]][temp_d < (qnt[1] - H)] <- NA
+    data[[i]][temp_d > (qnt[2] + H)] <- NA
+    hist(data[[i]],xlab=i,main=paste("distribution of",i, "after"))
+    remove(H, qnt, temp_d)
+  }#close_if
+}#close_for
+```
+```{r}
+sum(is.na(data$hours.per.week))
+sum(is.na(data$educational.num))
+sum(is.na(data$age))
+```
+
+#4.c.
+```{r Q-4-c}
+for (i in colnames(data)){
+  if(class(data[[i]])=="integer"){
+    data[[paste(i,"_standardize",sep="")]]<-((data[[i]]-mean(data[[i]], na.rm = T))/sd(data[[i]], na.rm = T))
+  }#close_if
+}#close_for
+```
+
+#4.d.
+```{r Q-4-d}
+par(mar = c(10,4,4,2) + 0.1)
+for (i in colnames(data)){
+  if(class(data[[i]])=="factor"){
+    barplot(table(data[[i]])[order(table(data[[i]]))],las=2,main = i)
+      }#close_if
+}#close_for
+```
+
+#4.e.
+How can we merge different levels in the data?
+1.race:
+  "White", all others as "Other".
+2.education:
+  This is the hierarchy of education levels:
+  Preschool < 1st-4th < 5th-6th < 7th-8th < 9th < 10th < 11th < 12th < HS-grad < Prof-school < Assoc-acdm 
+  < Assoc-voc < Some-college < Bachelors < Masters < Doctorate.
+  As so, we will merge the following factors:
+  Dropped_out(preschool to 12th grade), Advance_deg(Masters & Doctorate), 
+  Basic_acdm(Assoc-acdm, Assoc-voc, Some-college)
+  HS-grad(HS-grad, Prof-school) 
+3.workclass:
+  First, we see that we have an unkwown ("?") workclass. We will deal with that later.
+  Govermant(Federal-gov, Local-gov, State-gov)
+  Self_imp(Self-emp-inc, Self-emp-not-inc)
+  Non_pay(Never-worked, Without-pay)
+4.married:
+  Was-married(Separated, Divorced, Widowed, Married-spouse-absent)
+  Married(Married-AF-spouse, Married-civ-spouse)
+
+```{r Q-4-e}
+data$race_merged<-data$race
+levels(data$race_merged)<-c("Other","Other","Other","Other","White")
+data$education_merged<-data$education
+levels(data$education_merged)<-c("Dropped_out","Dropped_out","Dropped_out","Dropped_out","Dropped_out",
+                                 "Dropped_out","Dropped_out","Basic_acdm","Basic_acdm","Bachelors",
+                                 "Advance_deg","HS-grad","Advance_deg","Dropped_out","HS-grad","Basic_acdm")
+data$workclass_merged<-data$workclass
+levels(data$workclass_merged)<-c("?","Government","Government","Non_pay","Private","Self_imp",
+                                 "Self_imp","Government","Non_pay")
+data$marital.status_merged<-data$marital.status
+levels(data$marital.status_merged)<-c("Was-married","Married","Married","Was-married","Never-married",
+                                      "Was-married","Was-married")
+```
+
+#4.f.
+```{r Q-4-f}
+set.seed(256)
+in_train <- sample(1:nrow(data), 0.7*nrow(data)) #70%-30%
+data_train <- data[in_train, ] # 70%
+data_test <- data[-in_train, ] # 30%
+```
+
+#4.g.
+```{r Q-4-g}
+glm.q4<-glm(income~age_standardize + educational.num_standardize + hours.per.week_standardize +
+      race_merged + education_merged + workclass_merged + marital.status_merged + gender,
+        family = binomial,data=data_train)
+summary(glm.q4)
+```
+
+The 'AIC' is 23425.
+Smaller AIC values indicate that the model is closer to the truth.
+
+#4.h.
+```{r Q-4-h}
+data_test_hat<-predict(glm.q4, data_test, type = "response")
+data_test_hat_binar<-(data_test_hat>0.5)*1
+#confusion matrix:
+CM.glm.q4 <- table(true= data_test$income, predicted = data_test_hat_binar)
+paste("We predicted correctly ", CM.glm.q4[1,1]+CM.glm.q4[2,2],", and we missed ", CM.glm.q4[1,2]+CM.glm.q4[2,1],".",sep="")
+```
+
+#4.i.
+To measure accuracy we will use the formula: Accuracy = (TP+TN)/(TP+TN+FP+FN)
+
+```{r Q-4-i}
+acc<-(sum(diag(CM.glm.q4)) / sum(CM.glm.q4))
+paste("The accuracy of the model is: ",acc)
+```
+
+#4.j.
+The Precision formula is:TP/(TP+FP)
+The Recall formula is:TP/(TP+FN)
+
+```{r Q-4-j}
+Preci <- (CM.glm.q4[4] / sum(CM.glm.q4[,2]))
+Rec <- (CM.glm.q4[4] / sum(CM.glm.q4[2,]))
+paste("The Precision of the model is: ",Preci)
+paste("The Recall of the model is: ",Rec)
+```
+
+There is a trade-off between Precision and Recall. We can not have them both high at the same time, it depends on what do we find more important to avoid - a false positive or a false negative. Precision is more important than Recall when you would like to have fewer false positives and the other way around with Recall.
+
+#4.k.
+```{r Q-4-k}
+alphas <- seq(0,1,0.01)
+TPRs <- numeric(length(alphas))
+FPRs <- numeric(length(alphas)) 
+for (i in seq_along(alphas)){
+  pr_i <- ifelse(data_test_hat>alphas[i],1,0)
+  CM_i <- table(data_test$income,pr_i) ###only for test data
+  TPRs[i] <- CM_i[4] / sum(CM_i[2,]) # TP/TP+FN - regection from FN (high is good)
+  FPRs[i] <- CM_i[3] / sum(CM_i[1,]) # FP/FP+FN - regection from FP (low is good)
+}
+plot(TPRs~FPRs, type = "l",main = "ROC Curve")
+```
+
+The ROC curve is a plot of the true positive rate (Recall) against the false positive rate for different threshold levels. By that we can select possibly optimal models.
+
+#4.l.
+We think we should remove the "education_merged"(factorial education), because it is correlated with the "educational.num" and so less informative. In addition we noticed that a model without it decreases the AIC and the accuracy by a bit.
+
+We will also add the interactions of the age with race (all three combinations) and gender because we believe that males and females or whites and non-whites might start working at different ages. Also we will interact age with the number of work hours per week because we believe that there is additional information gain of the number of hours a person works due to its age.
+
+We will add the interaction of hours per week with the marital status as we believe people with or without a spouse work a different amount of time and also add this relation with the race to help the model see the effect within each race. We will add gender and marital status as interactions as we believe that men and women work different amounts of hours per week. 
+
+We will additionally set a relation between the years of education, race and marital status to add an effect of different levels of education within different races and different marital statuses and the same with different genders instead of marital status.
+
+Finally we will also present the effect of non-linear relation on our numerical features.
+This transformation might be somewhat "incorrect" as we lose the negative values in the data when setting the values in the power of 2, but as we see, that interaction contributes to the accuracy of the model so we will use it -as this was the goal of this question.
+
+```{r Q-4-l}
+glm.q4_try <- glm(income ~ age_standardize + educational.num_standardize + hours.per.week_standardize + race_merged + workclass_merged + marital.status_merged + gender + I(age_standardize^2) + I(educational.num_standardize^2) + I(hours.per.week_standardize^2) + 
+age_standardize*race_merged + age_standardize*gender + age_standardize*hours.per.week_standardize + age_standardize*race_merged*gender + hours.per.week_standardize*marital.status_merged + hours.per.week_standardize*gender +  hours.per.week_standardize*race_merged*marital.status_merged + educational.num_standardize*race_merged*marital.status_merged + educational.num_standardize*race_merged*gender,family = binomial,data=data_train)
+
+data_test_hat_try<-predict(glm.q4_try, data_test, type = "response")
+data_test_hat_binar_try<-(data_test_hat_try>0.5)*1
+CM.glm.q4_try <- table(true= data_test$income, predicted = data_test_hat_binar_try)
+acc_try<-(sum(diag(CM.glm.q4_try)) / sum(CM.glm.q4_try))
+paste("The accuracy of the model is: ",acc_try)
+paste("We gained an additional model accuracy of " ,acc_try-0.818718696269717,".",sep="")
+```
+
+Though this might be a very low addition to the accuracy this is the best we could do.
+Generally we believe that this addition is not too good for the general idea of modeling as we added a very large amount of new features that were not extremely informative.
+The testing of the accuracy of the model was on a single test set, and by that we think we should say that this model is an example of "Over-fitting".
+If we would like to predict a different kind of a test set, we think we should use our initial model as it much simpler and predict similar results.
