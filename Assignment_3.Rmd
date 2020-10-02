@@ -1,0 +1,623 @@
+---
+title: "Assignment 3"
+author: "Dan Boguslavsky & Nadav Livneh"
+date: "15/06/2020"
+output: html_document
+---
+
+```{r}
+rm(list = ls())
+```
+
+#Question 1
+
+```{r}
+d_clean <- read.csv("/Users/danboguslavsky/git/datascience/train.csv")
+```
+
+#Q1 - a.
+
+```{r}
+for (name in colnames(d_clean)){
+  if (sum(is.na(d_clean[[name]]))>0){d_clean[[name]] <- NULL}     # cond' if var' contain NA
+}
+```
+
+#Q1 - b.
+
+```{r}
+library(caret)
+for (i in colnames(d_clean[,nearZeroVar(d_clean)])){    # for loop on low variance var's
+#  plot(d_clean[[i]], main = paste(i))
+  d_clean[[i]] <- NULL
+}
+```
+
+#Q1 - c.
+
+```{r}
+set.seed(1)
+in_train <- sample(1:nrow(d_clean), 0.7*nrow(d_clean))    # 70%/30%
+d_train <- d_clean[in_train,]
+d_validation <- d_clean[-in_train,]
+```
+
+#Q1 - d.
+
+```{r}
+num_var <- c()
+for (i in 1:length(d_clean[1,])){
+  if(class(d_clean[,i])=="integer"){num_var <- append(i, num_var)}
+}
+```
+
+```{r echo=TRUE, include=FALSE}
+#check correlations
+cor(d_clean[,num_var])
+```
+
+We have selected the variables with the highest absolute correlation with the target variable "SalePrice" as the most interesting variables, as they might have an interesting explanation for their correlation.
+
+First, we will plot a visual analysis to see the relationship between each variable and the target variable:
+
+```{r}
+x_vars <- c("OverallQual", "GrLivArea", "GarageCars")
+for (var in x_vars){
+  plot(d_clean[[var]], d_clean[["SalePrice"]], main = paste(var))
+  print(paste(var,"summary:"))
+  a <- d_clean[[var]]
+  print(summary(a))
+}
+```
+```{r}
+library("corrplot")
+
+corrplot(cor(d_clean[c("OverallQual", "GrLivArea", "GarageCars","SalePrice")])) 
+```
+
+We can see the high and positive correlation between these variables to the target variable.
+
+These features also make a logical sense - We expect the overall quality of the apartment to have a positive influence on the price.
+We expect a larger number of parking spaces (GarageCars) to have a positive influence on the price (as the house is possible larger).
+And also the ground of the living area will increase the price as it rises as the house gets bigger.
+
+#Q1 - e.
+
+```{r}
+first_lm <- lm(SalePrice ~ OverallQual+GrLivArea+GarageCars, data = d_train)
+```
+
+#Q1 - f.
+
+```{r}
+RMSE(d_train$SalePrice, predict(first_lm, d_train))
+```
+
+#Q1 - g.
+
+```{r}
+RMSE(d_validation$SalePrice, predict(first_lm, d_validation))
+```
+
+Common sense is that the ROOT MEAN SQUARE ERROR should be lower on the train set compared to the validation set.
+We think that in this case it is not the usual result and we present it in the next 'chunk'. We calculate the mean of (RMSE(train)-RMSE(validation)) that should be negative (i.e the RMSE of the train is lower than the RMSE of the validation): 
+
+
+```{r}
+train_rmse <- c()
+validation_rmse <- c()
+for(i in c(seq(1:1000))){
+  set.seed(i)
+  looping_in_train <- sample(1:nrow(d_clean), 0.7*nrow(d_clean)) 
+  looping_d_train <- d_clean[looping_in_train,]
+  looping_d_validation <- d_clean[-looping_in_train,]
+  looping_lm <- lm(SalePrice ~ OverallQual+GrLivArea+GarageCars, data = looping_d_train)
+  train_rmse <- append(train_rmse, RMSE(looping_d_train$SalePrice, predict(looping_lm, looping_d_train)))
+  validation_rmse <- append(validation_rmse, RMSE(looping_d_validation$SalePrice, predict(looping_lm, looping_d_validation)))
+}
+mean(train_rmse - validation_rmse)
+```
+
+#Q1 - h.
+
+```{r}
+for (i in c(1:length(d_validation$Neighborhood))){
+  if (d_validation$Neighborhood[i]=="Blueste"){d_validation$Neighborhood[i]<-NA}
+}
+```
+
+```{r}
+sec_lm <- step(lm(SalePrice ~. , data = d_train),trace=0)
+```
+
+```{r}
+trn_RMSE <- RMSE(d_train$SalePrice, predict(sec_lm, d_train), na.rm = TRUE)
+vld_RMSE <- RMSE(d_validation$SalePrice, predict(sec_lm, d_validation), na.rm = TRUE)
+print(paste("the RMSE for train is", trn_RMSE, "and for validation is", vld_RMSE))
+```
+
+Using 'step' command may caus an overfitting problem. the command fits the best model for the training data and decreases the AIC for the prediction on the training data. But it can increase the gap between the validation and training RMSE - that indicate on overfitting.
+
+In big data, there are many variables and some of the more relevant for a good model, and some of them are less relevant.
+The more variables there are, the chance that the 'step' command drop relevant variables is bigger.
+
+#Question 2
+
+```{r}
+d_clean <- read.csv("/Users/danboguslavsky/git/datascience/train.csv")
+for (name in colnames(d_clean)){
+  if (sum(is.na(d_clean[[name]]))>0){d_clean[[name]] <- NULL}     # cond' if var' contain NA
+}
+library(caret)
+for (i in colnames(d_clean[,nearZeroVar(d_clean)])){  # for loop on low variance var's
+#  plot(d_clean[[i]], main = paste(i))
+  d_clean[[i]] <- NULL
+}
+```
+
+#Q2 - a.
+
+```{r}
+av_SP <- mean(d_clean$SalePrice)
+for ( i in c(1:nrow(d_clean))){
+  ifelse(d_clean$SalePrice[i] > av_SP, d_clean$SalePrice[i] <- "high", d_clean$SalePrice[i] <- "low")
+}
+d_clean$SalePrice <- as.factor(d_clean$SalePrice)
+```
+
+```{r}
+set.seed(1)
+in_train <- sample(1:nrow(d_clean), 0.6*nrow(d_clean)) # 60%-40%
+d_trn <- d_clean[in_train,]
+d_val <- d_clean[-in_train,]
+in_validation <- sample(1:nrow(d_val), 0.5*nrow(d_val)) # 50%-50% out of 40% -> 20%-20%
+d_tst <- d_val[-in_validation,]
+d_val <- d_val[in_validation,]
+```
+
+#Q2 - b.
+
+```{r}
+library(e1071)
+svm_1 = svm(SalePrice ~ MSZoning+Neighborhood+YearRemodAdd+Foundation+X2ndFlrSF+TotRmsAbvGrd+YrSold, data = d_trn, kernel = 'linear') 
+tst_prdt <- predict(svm_1, d_tst)
+print("confusion matrix:")
+(confusion_tst_1 <- table(prediction=tst_prdt, truth=d_tst$SalePrice))
+accuracy_1 <- (sum(diag(confusion_tst_1)) / sum(confusion_tst_1))
+Recall_1 <- confusion_tst_1[4] / sum(confusion_tst_1[2,])
+Precision_1 <- confusion_tst_1[4] / sum(confusion_tst_1[,2])
+print(paste("Accuracy - ",accuracy_1,", Recall - ",Recall_1,", Precision - ",Precision_1, sep = ""))
+```
+
+#Q2 - c.
+```{r}
+pos_cost_hp <- c(seq(0.01,20,len = 30))
+trn_accuracy_rate <- c()
+val_accuracy_rate <- c()
+for (hp in pos_cost_hp) {       # loop for diff hyper-parameter 
+  svm_i = svm(SalePrice ~ MSZoning+Neighborhood+YearRemodAdd+Foundation+X2ndFlrSF+TotRmsAbvGrd+YrSold, data = d_trn, kernel = 'linear', cost = hp) 
+  
+  trn_prdt <- predict(svm_i, d_trn)                                         # calculating & saving the relevant indices on traning set
+  confusion_trn_i <- table(prediction=trn_prdt, truth=d_trn$SalePrice)
+  trn_accuracy_rate <- append(trn_accuracy_rate, 1-(sum(diag(confusion_trn_i)) / sum(confusion_trn_i)))
+  
+  val_prdt <- predict(svm_i, d_val)                                         # calculating & saving the relevant indices on validation set
+  confusion_val_i <- table(prediction=val_prdt, truth=d_val$SalePrice)
+  val_accuracy_rate <- append(val_accuracy_rate, 1-(sum(diag(confusion_val_i)) / sum(confusion_val_i)))
+}
+bst_cost <- c()
+match_acc <- c()
+for (i in 1:30){
+  if (val_accuracy_rate[i] == min(val_accuracy_rate)) {   # saving the vaules of the cost that maximize the accuracy
+  bst_cost <- append(bst_cost, pos_cost_hp[i])  
+  match_acc <- append(match_acc, val_accuracy_rate[i])
+  }
+}
+plot(bst_cost,match_acc, ylab = "error", col = "black", asp = c(120))
+lines(trn_accuracy_rate~pos_cost_hp, type = "l",col = "red")
+lines(val_accuracy_rate~pos_cost_hp, type = "l", col = "blue")
+legend("topleft", legend=c("train", "validation", "minimom error on validation set"), col=c("red","blue", "black"),lty=1, cex=0.7)
+```
+
+The blue line represents the error rate (ylab) on the validation set with different values for the 'cost' hyper-parameter (xlab).
+The red line is the same on the test set.
+The black circles are the lowest error rate on the validation set.
+
+We can see here the higher 'cost' improves the prediction on the test set. but on the validation, it not continues.
+
+
+```{r}
+for (coste in bst_cost) {
+  svm_final = svm(SalePrice ~ MSZoning+Neighborhood+YearRemodAdd+Foundation+X2ndFlrSF+TotRmsAbvGrd+YrSold, data = d_trn, kernel = 'linear', cost = coste) 
+  test_prdt <- predict(svm_final, d_tst)
+  confusion_tst <- table(prediction=test_prdt, truth=d_tst$SalePrice)
+  val_accuracy<- sum(diag(confusion_tst)) / sum(confusion_tst)
+  val_Recall <- confusion_tst[4] / sum(confusion_tst[2,])
+  val_Precision <- confusion_tst[4] / sum(confusion_tst[,2])
+  print(paste("for cost ", coste, ": Accuracy - ",val_accuracy,", Recall - ",val_Recall,", Precision - ",val_Precision, sep = ""))
+}
+```
+
+Section b results: accuracy - 0.722602739726027, recall - 0.805555555555556, precision - 0.686390532544379
+
+After calculating the different indices in choosing cost =  14.4855172413793 because he gives one of the best results and further than that there is a concern from over-fitting.
+
+
+#Q2 - d.
+
+```{r}
+svm_final = svm(SalePrice ~ MSZoning+Neighborhood+YearRemodAdd+Foundation+X2ndFlrSF+TotRmsAbvGrd+YrSold, data = d_trn, kernel = 'linear', cost = 14.4855172413793) 
+test_prdt <- predict(svm_final, d_tst)
+(confusion_tst <- table(prediction=test_prdt, truth=d_tst$SalePrice))
+val_accuracy<- sum(diag(confusion_tst)) / sum(confusion_tst)
+val_Recall <- confusion_tst[4] / sum(confusion_tst[2,])
+val_Precision <- confusion_tst[4] / sum(confusion_tst[,2])
+print(paste("for cost 14.4855172413793: Accuracy - ",val_accuracy,", Recall - ",val_Recall,", Precision - ",val_Precision, sep = ""))
+```
+
+In section b the 'cost' hyper-parameter is the difficulty cost.
+In this section, we search the 'cost' that gives us the best accuracy from 30 different values so we found better value than the default. That's the reason that the indices here are better than section b.
+
+
+#Question 3
+```{r Q-3}
+#install.packages('randomForest')
+library('randomForest')
+library('ggplot2')
+diamonds.data<-diamonds
+diamonds.subset <- sample(1:nrow(diamonds.data), 5000)
+diamonds.subset<-diamonds.data[diamonds.subset,]
+#"Note that some features are in text format, and we need to encode them to numerical." ---> What for??
+```
+
+#Q3 - 1.
+```{r Q3 - 1}
+k.fold<-function(data_set,num,seed=256){
+  library('rlist')
+  iterations<-num
+  data_list<-list()
+  for (i in 1:iterations){
+    set.seed(seed)
+    rows_num<-sample(1:nrow(data_set), (1/num)*nrow(data_set))
+    set<-data_set[rows_num,]
+    data_list<-list.append(data_list,set)
+    data_set <- data_set[-rows_num, ]
+    
+    if(num==0)
+    {break()}
+    num<-num-1
+  }#closing for loop
+  return(data_list)
+}#closing fun k.fold
+
+diamonds.folds<-k.fold(diamonds.subset,10)
+```
+
+#Q3 - 2 - a.
+The random forest algorithm is with large complexity, there for, we will choose only few of the features from the whole dataset to reduce runtime.
+We will choose the best feature combination with the help of the "Information Gain" indicator:
+
+```{r Q3 - 2 - a - IG}
+library('FSelector')
+IG<-information.gain(price~.,data=diamonds.subset)
+IG$features<-rownames(IG)[order(IG$attr_importance,decreasing = T)]
+IG$val.sorted<-sort(IG$attr_importanc,decreasing = T)
+IG
+```
+
+Therefore, we will choose the x,y,z,clarity and carat features.
+
+```{r Q3 - 2 - a}
+#
+RMSE.total<-c()
+#1.Determine the train and the validation sets:
+for(k in seq(1,10,by=1)){
+  train.set.list<-diamonds.folds[c(-k)]
+  train.set<-train.set.list[[1]]
+  for(l in 2:length(train.set.list)){
+      train.set<-rbind(train.set,train.set.list[[l]])
+  }#closing train set binder for loop
+   validation.set<-diamonds.folds[[k]]
+   #2.train the model:
+   RF<-randomForest(price~x+y+z+carat+clarity,data=train.set)
+   #3.Validate the model:
+   model_val<-predict(RF,validation.set)
+   RMSE.total<-c(RMSE.total,ModelMetrics::rmse(validation.set$price,model_val))
+}#closing 1->10 folds for loop
+```
+
+#Q3 - 2 - b.
+```{r Q3 - 2 - b}
+#Results aggregation:
+paste("The mean RMSE of the CV is:",mean(RMSE.total))
+```
+
+
+
+#Question 3
+```{r Q-3}
+#install.packages('randomForest')
+library('randomForest')
+library('ggplot2')
+diamonds.data<-diamonds
+diamonds.subset <- sample(1:nrow(diamonds.data), 5000)
+diamonds.subset<-diamonds.data[diamonds.subset,]
+#"Note that some features are in text format, and we need to encode them to numerical." ---> What for??
+```
+
+#Q3 - 1.
+```{r Q3 - 1}
+k.fold<-function(data_set,num,seed=256){
+  library('rlist')
+  iterations<-num
+  data_list<-list()
+  for (i in 1:iterations){
+    set.seed(seed)
+    rows_num<-sample(1:nrow(data_set), (1/num)*nrow(data_set))
+    set<-data_set[rows_num,]
+    data_list<-list.append(data_list,set)
+    data_set <- data_set[-rows_num, ]
+    
+    if(num==0)
+    {break()}
+    num<-num-1
+  }#closing for loop
+  return(data_list)
+}#closing fun k.fold
+
+diamonds.folds<-k.fold(diamonds.subset,10)
+```
+
+#Q3 - 2 - a.
+The random forest algorithm is with large complexity, there for, we will choose only few of the features from the whole dataset to reduce runtime.
+We will choose the best feature combination with the help of the "Information Gain" indicator:
+  
+  ```{r Q3 - 2 - a - IG}
+library('FSelector')
+IG<-information.gain(price~.,data=diamonds.subset)
+IG$features<-rownames(IG)[order(IG$attr_importance,decreasing = T)]
+IG$val.sorted<-sort(IG$attr_importanc,decreasing = T)
+IG
+```
+
+Therefore, we will choose the x,y,z,clarity and carat features.
+
+```{r Q3 - 2 - a}
+#
+RMSE.total<-c()
+#1.Determine the train and the validation sets:
+for(k in seq(1,10,by=1)){
+  train.set.list<-diamonds.folds[c(-k)]
+  train.set<-train.set.list[[1]]
+  for(l in 2:length(train.set.list)){
+    train.set<-rbind(train.set,train.set.list[[l]])
+  }#closing train set binder for loop
+  validation.set<-diamonds.folds[[k]]
+  #2.train the model:
+  RF<-randomForest(price~x+y+z+carat+clarity,data=train.set)
+  #3.Validate the model:
+  model_val<-predict(RF,validation.set)
+  RMSE.total<-c(RMSE.total,ModelMetrics::rmse(validation.set$price,model_val))
+}#closing 1->10 folds for loop
+```
+
+#Q3 - 2 - b.
+```{r Q3 - 2 - b}
+#Results aggregation:
+paste("The mean RMSE of the CV is:",mean(RMSE.total))
+```
+#Q3 - 3 - 1.
+
+We will start with a rough tune for the hyper-parameters and then try a more fine-tuning using grid search around the best results.
+
+```{r Q3 - 3 - 1 tuning ntree}
+mean.RMSE.total_val<-c()
+#Tuning 'ntree' hyper=parameter:
+testing.parameters<-seq(100,500,by=5)
+for (ntr in testing.parameters){
+  RMSE.total_val<-c()
+  #1.Determine the train and the validation sets:
+  for(k in seq(1,10,by=1)){
+    train.set.list<-diamonds.folds[c(-k)]
+    train.set<-train.set.list[[1]]
+    for(l in 2:length(train.set.list)){
+      train.set<-rbind(train.set,train.set.list[[l]])
+    }#closing train set binder for loop
+    validation.set<-diamonds.folds[[k]]
+    #2.train the model:
+    RF<-randomForest(price~x+y+z+carat+clarity,data=train.set,ntree=ntr)
+    #3.Validate the model:
+    model_val<-predict(RF,validation.set)
+    RMSE.total_val<-c(RMSE.total_val,ModelMetrics::rmse(validation.set$price,model_val))
+  }#closing 1->10 folds for loop
+  mean.RMSE.total_val<-c(mean.RMSE.total_val,mean(RMSE.total_val))
+}#closing Tuning 'ntree' loop
+#Finding the minimun error:
+best.ntree<-testing.parameters[which(mean.RMSE.total_val==min(mean.RMSE.total_val))]
+paste("The best fitted number of trees is: ",best.ntree)
+```
+
+
+Now we will try more fine-tuning around the previous result of 'ntree',
+with the combinations of 2 to 5 variables in a tree (tuning mtry).
+Here we will also include tuning 'replace'.
+
+```{r Q3 - 3 - 1 tuning mtry, replace and ntree fine tuning}
+mean.RMSE.total_val<-c()
+combinations<-c()
+#Tuning 'ntree' hyper=parameter:
+testing.parameters_ntree<-seq(best.ntree-10,best.ntree+10,by=1)
+testing.parameters_mtry<-seq(2,5,by=1)
+testing.parameters_replace<-c(T,F)
+for(nrt in testing.parameters_ntree){
+  for (mt in testing.parameters_mtry){
+    for (repl in testing.parameters_replace){
+      
+      RMSE.total<-c()
+      #1.Determine the train and the validation sets:
+      for(k in seq(1,10,by=1)){
+        train.set.list<-diamonds.folds[c(-k)]
+        train.set<-train.set.list[[1]]
+        for(l in 2:length(train.set.list)){
+          train.set<-rbind(train.set,train.set.list[[l]])
+        }#closing train set binder for loop
+        validation.set<-diamonds.folds[[k]]
+        #2.train the model:
+        RF<-randomForest(price~x+y+z+carat+clarity,data=train.set,ntree=nrt,mtry=mt,replace=repl)
+        #3.Validate the model:
+        model_val<-predict(RF,validation.set)
+        model_train<-predict(RF,train.set)
+        RMSE.total_val<-c(RMSE.total_val,ModelMetrics::rmse(validation.set$price,model_val))
+      }#closing 1->10 folds for loop
+      mean.RMSE.total_val<-c(mean.RMSE.total_val,mean(RMSE.total_val))
+      combination<-c(combination,paste("ntree:",nrt,"mtry:",mt,"replace",repl))
+    }}}#closing Tuning loop
+#Finding the minimun error:
+best.comb<-testing.parameters[which(mean.RMSE.total_val==min(mean.RMSE.total_val))]
+paste("The best hyper-parameter combination is:",best.comb)
+```
+
+We will not try to tune 'nodesize' and 'maxnodes'. Although this tuning is possible with regression usage, we do not think it is wise to limit the algorithm to a range of nodes or node sizes and so we shall leave it as the default setting.
+
+#Q3 - 4.
+The 'ntree' hyperparameter is the number of trees the random forest grows.
+As there are more trees there are more possible combinations (trees) the forest might grow to learn from.
+We do want to grow a reletivly large number of trees for the model to have desent amount of combinations to learn from but we also do not want to grow too many as we might repeat some combinations and also waste unneseccey  computational cost and time.
+
+The 'mtry' hyperparameter is the number of variables randomly sampled as candidates at each split.
+This effects the structure of each tree inside the random forest. The algorithm eventually trys different variables combinations and we can set the size of each combinations.
+From 'Trevor Hastie' video it is shown that the correlation between trees goes down as we select less variables,as we would like to decrease the correlation between trees to get greather variance so the model can learn more.
+Different combinations will present different predictions resaults and require different computational costs.
+The default and suggested number of variables is the square root of the number of variables for classification tasks and p/3 for regression tasks.
+
+#Q3 - 5.
+Leave-One-out CV will test the model prediction resault on each sample separately and train on the rest of the dataset, where a regular K-fold CV will test the model prediction resault on a set of samples.
+Therefore, a disasvantage of the 'Leave-One-out CV' is a very complex computational cost and time when working with large datasets as the training will happen as many times as the dataset size.
+On the other hand, an advantage of the 'Leave-One-out CV' is its unbiased resault, meaning, it will provide the best and most accurate prediction accuracy of the model, because every iteration, the model trains on the whole dataset (except of one sample) and learns better.
+
+#Q4 - 1.
+```{r Q4 - 1}
+iris_data<-iris
+```
+
+#Q4 - 1 - a.
+```{r Q4 - 1 - a}
+set.seed(1)
+in_train <- sample(1:nrow(iris_data), 0.7*nrow(iris_data)) #70%-30%
+data_train <- iris_data[in_train, ] # 70%
+data_test <- iris_data[-in_train, ] # 30%
+
+library('rpart')
+tree<-rpart(Species~.,data=data_train)
+```
+#Q4 - 1 - b.
+```{r Q4 - 1 - b}
+library('rpart.plot')
+rpart.plot(tree)
+```
+
+We havn't made any Hyper-parameter tuning in the model so we got a default decision tree.
+This tree has depth of 3. The data is pretty balanced with 30%, 34% and 35% per each class when 'virginica' is the dominant class in the data - (By tree base).
+The first decision the tree makes is checking if 'Patel.Length' is smaller then 2.5, if so it classifies the type as 'setosa'. We can see that this classification is perfect as there is 100% of 'setosa' type under this branch.
+We can also infer that the feature 'Patel.Length' has the most information value in this model as the tree splits by it first.
+The next decision the tree makes is checking if 'Patel.Length' is smaller then 5, if not the tree classifies the type as 'virginica' with accuracy of 97% on the traning set.
+If 'Patel.Length' is indeed smaller then 5 the tree makes another split, this time by the feature 'Parel.Width' and classifies the type as 'versicolor' if 'Parel.Width' is smaller then 1.6 with 100% accuracy on the train set, else, the classification is 'virginica' with pretty un-accurate classification of 57%, althought this leaf contains only 7% of the whole train set data.
+
+#Q4 - 1 - c.
+```{r Q4 - 1 - c}
+predictions<-predict(tree,data_test,type = "class")
+#confusion matrix:
+tree.cm <- table(true = data_test$Species, predicted = predictions)
+tree.cm
+#accuracy:
+acc<-(sum(diag(tree.cm)) / sum(tree.cm))
+paste("The model accuracy is: ",acc,sep="")
+```
+
+#Q4 - 1 - d.
+A decision tree is very useful when the task has an 'if-else' ot 'yes-no' charecter, meaning the decisions are made by steps and the data splitting is linear by the features into 'squears' or 'cubes' on 2 or 3 feature dimetion and so on (the class bounderies are horizontal or prependucular).
+
+We would not want to use decision trees when the problems are more complex then a 'yes-no' problem, and have a non linear division on the features dimention.
+
+
+#Q4 - 2.
+We want to classify wheter a flower is 'setosa' or not so we will label 'setosa' as '1' and the rest as '0'.
+(In the train and test set) - We must do that because XGBoost only works with matrices that contain all numeric variables.
+```{r Q4 - 2.1}
+data_train$Species<-ifelse(data_train$Species=="setosa",1,0)
+data_test$Species<-ifelse(data_test$Species=="setosa",1,0)
+data_train<-as.matrix(data_train)
+data_test<-as.matrix(data_test)
+```
+
+Now we can train the model:
+We will set the model objective as "binary:logistic" because we are making a binary classification.
+We have choosen only one round because from the first round the model provides 0 train error.
+
+```{r Q4 - 2.2}
+#install.packages('xgboost')
+library('xgboost')
+xgb.1<-xgboost(data = data_train[,1:4], label = data_train[,5],nrounds = 1,objective = "binary:logistic")
+
+```
+
+Now we will predict the resaults on the test set and check its accuarcy:
+
+```{r}
+y_hat<-predict(xgb.1,data_test[,1:4])
+y_hat<-ifelse(y_hat>0.5,1,0)
+CM<-table(true = data_test[,5], predict = y_hat)
+#Accuracy:
+acc <-sum(diag(CM))/sum(CM)
+acc
+```
+
+We can see that indeed the model has 100% accuarcy on the test set so the default parameters with only one round make perfect model.
+
+
+#Q4 - 3.
+We actually can not tune the default hyperparameters any better because we already have a 100% accuracy model.
+Therefore we will demonstrate the tuning precess using the 'caret' package:
+
+First, we must choose the hyperparameters we want to tune:
+Let's say we want to keep only one round, tune 'max_depth' between 2 to 5, try 10 values of 'eta' in the range 0.05 to 0.8, and keep 'gamma' and the rest of the hyperparameters as 1.
+With 'expand.grid' we will generate all the possible combinations.
+
+```{r}
+library('caret')
+tunegrid <- expand.grid(nrounds = 1,
+                        eta = seq(0.05,0.8,length.out = 10),
+                        max_depth = c(2, 3, 4, 5),
+                        gamma = 1,
+                        colsample_bytree = 1,
+                        min_child_weight = 1,
+                        subsample = 1)
+```
+
+We will use the 'trainControl' function to create an object to pass the hyperparameters grid to the tuning model.
+We will run every combination only once.
+
+```{r}
+trcontrol <- trainControl(method = "repeatedcv",
+                          number = 1,
+                          repeats = 1, 
+                          search = "grid")
+```
+
+Now we can train the model and tune it base on the parameters grid we have created:
+  
+  ```{r}
+xgb_train = caret::train(x = data_train[,1:4],
+                         y= as.factor(data_train[,5]),
+                         trControl = trcontrol,
+                         tuneGrid = tunegrid,
+                         method = "xgbTree")
+```
+
+We will plot the result of the CV with the different dimensions of the hyperparameters:
+  
+  ```{r}
+plot(xgb_train)
+```
+
+As we see, the accuracy has dropped to less than 0.8 as we messed around with the hyperparameters and changed the default setting that had already resulted 100% accuracy.
