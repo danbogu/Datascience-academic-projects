@@ -2,4 +2,4 @@ This repo contains three data science assignments written in R using various use
 The whole project covers all popular ML algorithms (training and predicting), as well as pre-processing stages, visual representations, and more.
 * Assignment_1 - R basics.
 * Assignment_2 - Linear and logistic regressions. [in collaboration with Nadav Livneh]
-* Assignment_3 - Leniar models, SVM, decision trees and boosting. [in collaboration with Nadav Livneh]
+* Assignment_3 - Linear models, SVM, decision trees and boosting. [in collaboration with Nadav Livneh]
